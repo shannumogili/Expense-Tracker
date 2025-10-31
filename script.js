@@ -8,15 +8,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const transactionModal = document.getElementById('transaction-modal');
     const categoryModal = document.getElementById('category-modal');
     const goalModal = document.getElementById('goal-modal');
+    const loanModal = document.getElementById('loan-modal');
     const addTransactionBtn = document.getElementById('add-transaction');
     const addCategoryBtn = document.getElementById('add-category');
     const addGoalBtn = document.getElementById('add-goal');
+    const addLoanBtn = document.getElementById('add-loan');
     const closeModalBtns = document.querySelectorAll('.close-modal');
     
     // Form elements
     const transactionForm = document.getElementById('transaction-form');
     const categoryForm = document.getElementById('category-form');
     const goalForm = document.getElementById('goal-form');
+    const loanForm = document.getElementById('loan-form');
     
     // Chart elements
     let categoryChart, monthlyChart, incomeExpenseChart, trendsChart;
@@ -33,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 6, name: 'Income', budget: 0, icon: 'fa-money-bill-wave', color: '#00CC99' }
         ],
         goals: [],
+        loans: [],
         currentMonth: new Date().getMonth(),
         currentYear: new Date().getFullYear()
     };
@@ -136,6 +140,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Check loan EMI due dates and show alerts
+    function checkLoanAlerts() {
+        const now = new Date();
+
+        state.loans.forEach(loan => {
+            const daysUntilDue = Math.ceil((loan.nextDueDate - now) / (1000 * 60 * 60 * 24));
+
+            if (daysUntilDue <= 0) {
+                // EMI is due today or overdue
+                showNotification(
+                    'EMI Due!',
+                    `Your EMI of Rs${loan.emiAmount.toFixed(2)} for ${loan.loanName} is due today. Please make the payment.`,
+                    'error',
+                    10000
+                );
+            } else if (daysUntilDue <= 3) {
+                // EMI due within 3 days
+                showNotification(
+                    'EMI Reminder',
+                    `Your EMI of Rs${loan.emiAmount.toFixed(2)} for ${loan.loanName} is due in ${daysUntilDue} day(s).`,
+                    'warning',
+                    8000
+                );
+            } else if (daysUntilDue <= 7) {
+                // EMI due within a week
+                showNotification(
+                    'EMI Reminder',
+                    `Your EMI of Rs${loan.emiAmount.toFixed(2)} for ${loan.loanName} is due in ${daysUntilDue} days.`,
+                    'info',
+                    6000
+                );
+            }
+        });
+    }
     
     // Render dashboard
     function renderDashboard() {
@@ -190,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderCharts();
         setCurrentMonthYear();
         checkBudgetAlerts();
+        checkLoanAlerts();
     }
     
     // Load data from server
@@ -277,6 +317,8 @@ if (loansResponse.ok) {
                     renderCharts();
                 } else if (section === 'goals') {
                     renderGoals();
+                } else if (section === 'loans') {
+                    renderLoans();
                 }
             });
         });
@@ -285,6 +327,7 @@ if (loansResponse.ok) {
         addTransactionBtn.addEventListener('click', () => openModal('transaction'));
         addCategoryBtn.addEventListener('click', () => openModal('category'));
         addGoalBtn.addEventListener('click', () => openModal('goal'));
+        addLoanBtn.addEventListener('click', () => openModal('loan'));
         
         // Modal close buttons
         closeModalBtns.forEach(btn => {
@@ -302,6 +345,7 @@ if (loansResponse.ok) {
         transactionForm.addEventListener('submit', handleTransactionSubmit);
         categoryForm.addEventListener('submit', handleCategorySubmit);
         goalForm.addEventListener('submit', handleGoalSubmit);
+        loanForm.addEventListener('submit', handleLoanSubmit);
         
         // Report period navigation
         document.getElementById('prev-month').addEventListener('click', () => {
@@ -358,7 +402,7 @@ if (loansResponse.ok) {
     // Open modal
     function openModal(type) {
         closeModal(); // Close any open modal first
-        
+
         if (type === 'transaction') {
             prepareTransactionModal();
             transactionModal.classList.add('active');
@@ -368,6 +412,9 @@ if (loansResponse.ok) {
         } else if (type === 'goal') {
             prepareGoalModal();
             goalModal.classList.add('active');
+        } else if (type === 'loan') {
+            prepareLoanModal();
+            loanModal.classList.add('active');
         }
     }
     
@@ -643,12 +690,16 @@ if (loansResponse.ok) {
         
         const balance = income - expenses;
         const savingsRate = income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0;
-        
+
+        // Calculate total outstanding loans
+        const totalLoans = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
+
         // Update DOM
         document.getElementById('total-balance').textContent = `Rs${balance.toFixed(2)}`;
         document.getElementById('monthly-income').textContent = `Rs${income.toFixed(2)}`;
         document.getElementById('monthly-expenses').textContent = `Rs${expenses.toFixed(2)}`;
         document.getElementById('savings-rate').textContent = `${savingsRate}%`;
+        document.getElementById('total-loans').textContent = `Rs${totalLoans.toFixed(2)}`;
         
         // Update change indicator
         const changeElement = document.querySelector('#total-balance + .change');
@@ -1610,6 +1661,228 @@ if (loansResponse.ok) {
 
         // Download file
         XLSX.writeFile(wb, 'transactions.xlsx');
+    }
+
+    // Prepare loan modal
+    function prepareLoanModal() {
+        // Set today's date as default for start date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start-date').value = today;
+
+        // Reset form fields
+        document.getElementById('loan-name').value = '';
+        document.getElementById('principal-amount').value = '';
+        document.getElementById('interest-rate').value = '';
+        document.getElementById('tenure-months').value = '';
+    }
+
+    // Handle loan form submission
+    async function handleLoanSubmit(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('loan-name').value;
+        const principal = parseFloat(document.getElementById('principal-amount').value);
+        const rate = parseFloat(document.getElementById('interest-rate').value);
+        const tenure = parseInt(document.getElementById('tenure-months').value);
+        const startDate = new Date(document.getElementById('start-date').value);
+
+        if (!name || isNaN(principal) || principal <= 0 || isNaN(rate) || rate < 0 || isNaN(tenure) || tenure <= 0) {
+            alert('Please fill all fields with valid values.');
+            return;
+        }
+
+        // Calculate EMI
+        const monthlyRate = rate / 100 / 12;
+        const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / (Math.pow(1 + monthlyRate, tenure) - 1);
+
+        // Calculate next due date (assuming monthly payments)
+        const nextDueDate = new Date(startDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+        const newLoan = {
+            loanName: name,
+            principalAmount: principal,
+            interestRate: rate,
+            tenureMonths: tenure,
+            startDate,
+            emiAmount: emi,
+            nextDueDate,
+            remainingBalance: principal
+        };
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/loans', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newLoan)
+            });
+
+            if (response.ok) {
+                const savedLoan = await response.json();
+                savedLoan.startDate = new Date(savedLoan.startDate);
+                savedLoan.nextDueDate = new Date(savedLoan.nextDueDate);
+                state.loans.push(savedLoan);
+
+                // Update UI
+                closeModal();
+                renderLoans();
+
+                // Reset form
+                loanForm.reset();
+                prepareLoanModal();
+
+                showNotification('Success', 'Loan added successfully!', 'success');
+            } else {
+                alert('Failed to save loan');
+            }
+        } catch (error) {
+            console.error('Error saving loan:', error);
+            alert('Error saving loan');
+        }
+    }
+
+    // Render loans
+    function renderLoans() {
+        const container = document.getElementById('loans-list');
+        container.innerHTML = '';
+
+        if (state.loans.length === 0) {
+            container.innerHTML = '<p class="no-loans">No loans yet. Add your first loan!</p>';
+            return;
+        }
+
+        state.loans.forEach(loan => {
+            const loanEl = document.createElement('div');
+            loanEl.className = 'loan-card';
+
+            const progress = ((loan.principalAmount - loan.remainingBalance) / loan.principalAmount) * 100;
+            const daysUntilDue = Math.ceil((loan.nextDueDate - new Date()) / (1000 * 60 * 60 * 24));
+
+            loanEl.innerHTML = `
+                <div class="loan-header">
+                    <div class="loan-title">
+                        <h3>${loan.loanName}</h3>
+                        <p>Principal: Rs${loan.principalAmount.toFixed(2)}</p>
+                    </div>
+                    <div class="loan-actions">
+                        <button class="action-btn pay-emi-btn" data-id="${loan._id}">
+                            <i class="fas fa-credit-card"></i> Pay EMI
+                        </button>
+                        <button class="action-btn delete-loan-btn" data-id="${loan._id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="loan-details">
+                    <div class="loan-info">
+                        <span>EMI: Rs${loan.emiAmount.toFixed(2)}</span>
+                        <span>Rate: ${loan.interestRate}%</span>
+                        <span>Tenure: ${loan.tenureMonths} months</span>
+                    </div>
+                    <div class="loan-status">
+                        <span>Paid: ${loan.tenureMonths - Math.ceil(loan.remainingBalance / loan.emiAmount)}/${loan.tenureMonths}</span>
+                        <span>Balance: Rs${loan.remainingBalance.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="loan-progress">
+                    <div class="loan-progress-bar" style="width: ${progress}%"></div>
+                </div>
+                <div class="loan-due">
+                    <span class="due-date">Next EMI: ${formatDate(loan.nextDueDate)}</span>
+                    <span class="days-left ${daysUntilDue <= 3 ? 'urgent' : ''}">${daysUntilDue > 0 ? `${daysUntilDue} days left` : 'Due today'}</span>
+                </div>
+            `;
+
+            container.appendChild(loanEl);
+        });
+
+        // Add event listeners to pay EMI buttons
+        document.querySelectorAll('.pay-emi-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = btn.getAttribute('data-id');
+                payEMI(id);
+            });
+        });
+
+        // Add event listeners to delete loan buttons
+        document.querySelectorAll('.delete-loan-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = btn.getAttribute('data-id');
+                deleteLoan(id);
+            });
+        });
+    }
+
+    // Pay EMI
+    async function payEMI(id) {
+        const loan = state.loans.find(l => l._id === id);
+        if (!loan) return;
+
+        if (confirm(`Pay EMI of Rs${loan.emiAmount.toFixed(2)} for ${loan.loanName}?`)) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/loans/${id}/pay`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const updatedLoan = await response.json();
+                    updatedLoan.startDate = new Date(updatedLoan.startDate);
+                    updatedLoan.nextDueDate = new Date(updatedLoan.nextDueDate);
+
+                    // Update in state
+                    const index = state.loans.findIndex(l => l._id === id);
+                    state.loans[index] = updatedLoan;
+
+                    // Update UI
+                    renderLoans();
+
+                    showNotification('Success', 'EMI paid successfully!', 'success');
+                } else {
+                    alert('Failed to pay EMI');
+                }
+            } catch (error) {
+                console.error('Error paying EMI:', error);
+                alert('Error paying EMI');
+            }
+        }
+    }
+
+    // Delete loan
+    async function deleteLoan(id) {
+        if (confirm('Are you sure you want to delete this loan?')) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/loans/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Remove from state
+                    state.loans = state.loans.filter(l => l._id !== id);
+
+                    // Update UI
+                    renderLoans();
+
+                    showNotification('Success', 'Loan deleted successfully!', 'success');
+                } else {
+                    alert('Failed to delete loan');
+                }
+            } catch (error) {
+                console.error('Error deleting loan:', error);
+                alert('Error deleting loan');
+            }
+        }
     }
 
     // Initialize the app

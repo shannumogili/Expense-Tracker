@@ -1,32 +1,37 @@
-# TODO List for Expense Tracker Enhancements
+# Expense Tracker Enhancement: Add Loans and EMI Notifications
 
-## 1. Display User Name Near Profile
+## Tasks to Complete
 
-- [ ] Update `index.html` to fetch user data on load and display name in sidebar (replace "Welcome!" with "Welcome, [Name]!").
+### 1. Update HTML Structure
 
-## 2. Add Logout Button
+- [ ] Add "Loans" navigation item to sidebar
+- [ ] Create loans content section with loan list display
+- [ ] Add loan modal for adding/editing loans
+- [ ] Update dashboard to show loan summary cards
 
-- [ ] Add logout button in `index.html` sidebar.
-- [ ] Implement logout functionality: clear localStorage token and redirect to `signup.html`.
+### 2. Update JavaScript Logic
 
-## 3. Forget Password Functionality
+- [ ] Integrate loan data loading and state management
+- [ ] Implement loan rendering functions
+- [ ] Add loan CRUD operations (create, read, update, delete)
+- [ ] Implement EMI payment functionality
+- [ ] Add notification system for upcoming loan payments
 
-- [ ] Create `forgot-password.html` page with email input form.
-- [ ] Create `reset-password.html` page with new password form.
-- [ ] Update `login.html` to add "Forgot Password?" link.
-- [ ] Update `server.js`: Extend User schema for reset tokens, add `/forgot-password` endpoint (generate token, send email), add `/reset-password` endpoint (verify token, update password).
-- [ ] Integrate nodemailer for email sending.
+### 3. Update CSS Styling
 
-## 4. Google Login
+- [ ] Style loan cards and list
+- [ ] Style loan modal
+- [ ] Ensure responsive design for loans section
 
-- [ ] Update `package.json` to add dependencies: passport, passport-google-oauth20, express-session, nodemailer.
-- [ ] Update `server.js`: Configure Passport with Google strategy, add `/auth/google` and `/auth/google/callback` routes, handle user creation/update, generate JWT on success.
-- [ ] Update `login.html` to add Google login button.
-- [ ] Optionally update `signup.html` to add Google signup button.
+### 4. Testing and Validation
 
-## Followup Steps
+- [ ] Test loan addition and display
+- [ ] Test EMI payment updates
+- [ ] Test notification alerts for due dates
+- [ ] Verify integration with existing dashboard
 
-- [ ] Install new dependencies with `npm install`.
-- [ ] Set up environment variables (e.g., GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, EMAIL_USER, EMAIL_PASS).
-- [ ] Test the app: Start MongoDB, run `npm start`, open in browser, verify auth flows, UI updates, email sending.
-- [ ] Ensure no errors in console or functionality.
+## Current Status
+
+- Server-side loan endpoints already implemented
+- Basic loan data loading exists in client code
+- Need to integrate UI components and notifications

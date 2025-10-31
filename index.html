@@ -40,6 +40,7 @@
                         <li data-section="budgets"><i class="fas fa-chart-pie"></i> Budgets</li>
                         <li data-section="reports"><i class="fas fa-chart-line"></i> Reports</li>
                         <li data-section="goals"><i class="fas fa-bullseye"></i> Savings Goals</li>
+                        <li data-section="loans"><i class="fas fa-credit-card"></i> Loans</li>
                     </ul>
                 </nav>
 
@@ -72,6 +73,11 @@
                             <h3>Savings Rate</h3>
                             <p class="amount" id="savings-rate">0%</p>
                             <p class="change"><i class="fas fa-percentage"></i> Of income</p>
+                        </div>
+                        <div class="card">
+                            <h3>Total Loans</h3>
+                            <p class="amount expense" id="total-loans">Rs.0.00</p>
+                            <p class="change"><i class="fas fa-credit-card"></i> Outstanding balance</p>
                         </div>
                     </div>
 
@@ -212,6 +218,21 @@
                         </div>
                     </div>
                 </section>
+
+                <section id="loans" class="content-section">
+                    <div class="section-header">
+                        <h2>Loans & EMIs</h2>
+                        <button id="add-loan" class="btn-primary">
+                            <i class="fas fa-plus"></i> Add Loan
+                        </button>
+                    </div>
+
+                    <div class="loans-container">
+                        <div class="loans-list" id="loans-list">
+                            <!-- Loans will be added here dynamically -->
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -311,6 +332,36 @@
                     <input type="date" id="goal-date" required>
                 </div>
                 <button type="submit" class="btn-primary">Save Goal</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="loan-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Add Loan</h2>
+            <form id="loan-form">
+                <div class="form-group">
+                    <label for="loan-name">Loan Name</label>
+                    <input type="text" id="loan-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="principal-amount">Principal Amount (Rs.)</label>
+                    <input type="number" id="principal-amount" min="0.01" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="interest-rate">Interest Rate (%)</label>
+                    <input type="number" id="interest-rate" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="tenure-months">Tenure (Months)</label>
+                    <input type="number" id="tenure-months" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="start-date">Start Date</label>
+                    <input type="date" id="start-date" required>
+                </div>
+                <button type="submit" class="btn-primary">Save Loan</button>
             </form>
         </div>
     </div>
