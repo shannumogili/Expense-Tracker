@@ -1,0 +1,23 @@
+# Copy these environment variables to your Render dashboard
+# Go to: https://dashboard.render.com/ → Your Expense Tracker service → Environment tab
+
+MONGODB_URI=mongodb+srv://expensetrackeruser:YOUR_MONGODB_PASSWORD@cluster0.xxxxx.mongodb.net/trackerDB?retryWrites=true&w=majority
+JWT_SECRET=776cfe65fc3a5a6f4b9ea94450ffb26aa7b5db04eba77c16e7294ab52760e379
+SESSION_SECRET=bd0f870c5f5148f99bc259775d81db452afea86527905574a794e57c2a5b6ceb
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=https://your-render-app-name.onrender.com/auth/google/callback
+FRONTEND_URL=https://your-render-app-name.onrender.com
+PORT=10000
+
+# Instructions:
+# 1. Replace YOUR_MONGODB_PASSWORD with your actual MongoDB Atlas password
+# 2. Replace your-email@gmail.com with your Gmail address
+# 3. Replace your-gmail-app-password with your Gmail app password
+# 4. Replace your-google-client-id and your-google-client-secret with your Google OAuth credentials
+# 5. Replace your-render-app-name with your actual Render app name (without .onrender.com)
+# 6. Copy each line above (without the # comments) to Render's Environment Variables section
+# 7. Click "Add Environment Variable" for each one
+# 8. Redeploy your Render service
