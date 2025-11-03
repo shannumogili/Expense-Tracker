@@ -80,7 +80,7 @@ const Goal = mongoose.model('Goal', goalSchema);
 // Loan schema
 const loanSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  name: { type: String, required: true },
+  loanName: { type: String, required: true },
   principalAmount: { type: Number, required: true },
   interestRate: { type: Number, required: true },
   tenureMonths: { type: Number, required: true },
@@ -323,7 +323,7 @@ app.get('/loans', verifyToken, async (req, res) => {
 });
 
 app.post('/loans', verifyToken, async (req, res) => {
-  const { name, principalAmount, interestRate, tenureMonths, startDate } = req.body;
+  const { loanName, principalAmount, interestRate, tenureMonths, startDate } = req.body;
 
   // Calculate EMI
   const monthlyRate = interestRate / 100 / 12;
