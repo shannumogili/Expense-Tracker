@@ -367,9 +367,14 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login.html' }),
   (req, res) => {
-    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET || "secretKey");
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
-    res.redirect(`${frontendUrl}/index.html?token=${token}`);
+    try {
+      const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET || "secretKey");
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+      res.redirect(`${frontendUrl}/index.html?token=${token}`);
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.status(500).json({ message: 'Authentication failed' });
+    }
   }
 );
 
