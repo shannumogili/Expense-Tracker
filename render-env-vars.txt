@@ -1,7 +1,7 @@
 # Copy these environment variables to your Render dashboard
 # Go to: https://dashboard.render.com/ → Your Expense Tracker service → Environment tab
 
-MONGODB_URI=mongodb+srv://expensetrackeruser:Shannu@081005@cluster0.vmfcx71.mongodb.net/trackerDB?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://expensetrackeruser:Shannu%40081005@cluster0.vmfcx71.mongodb.net/trackerDB?retryWrites=true&w=majority
 JWT_SECRET=776cfe65fc3a5a6f4b9ea94450ffb26aa7b5db04eba77c16e7294ab52760e379
 SESSION_SECRET=bd0f870c5f5148f99bc259775d81db452afea86527905574a794e57c2a5b6ceb
 EMAIL_USER=shannumogili@gmail.com

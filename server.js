@@ -14,7 +14,10 @@ const crypto = require('crypto');
 const app = express();
 console.log("Express app created");
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5000',
+  credentials: true
+}));
 app.use(express.static('.'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret',
@@ -165,61 +168,100 @@ passport.deserializeUser(async (id, done) => {
 
 // Auth routes
 app.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-  const user = new User({ name, email, password: hashed });
-  await user.save();
-  res.json({ message: 'User registered' });
+  try {
+    const { name, email, password } = req.body;
+    const hashed = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, password: hashed });
+    await user.save();
+    res.json({ message: 'User registered' });
+  } catch (error) {
+    console.error('Registration error:', error);
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'Email already exists' });
+    } else {
+      res.status(500).json({ message: 'Server error during registration' });
+    }
+  }
 });
 
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: 'Invalid credentials' });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    if (!user.password) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "secretKey");
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
-  if (!user.password) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "secretKey");
-  res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
 });
 
 // User route
 app.get('/user', verifyToken, async (req, res) => {
-  const user = await User.findById(req.userId).select('-password');
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  res.json({ id: user._id, name: user.name, email: user.email });
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ id: user._id, name: user.name, email: user.email });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Transaction routes
 app.get('/transactions', verifyToken, async (req, res) => {
-  const transactions = await Transaction.find({ userId: req.userId }).sort({ date: -1 });
-  res.json(transactions);
+  try {
+    const transactions = await Transaction.find({ userId: req.userId }).sort({ date: -1 });
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.post('/transactions', verifyToken, async (req, res) => {
-  const transaction = new Transaction({ ...req.body, userId: req.userId });
-  await transaction.save();
-  res.json(transaction);
+  try {
+    const transaction = new Transaction({ ...req.body, userId: req.userId });
+    await transaction.save();
+    res.json(transaction);
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.put('/transactions/:id', verifyToken, async (req, res) => {
-  const transaction = await Transaction.findOneAndUpdate(
-    { _id: req.params.id, userId: req.userId },
-    req.body,
-    { new: true }
-  );
-  res.json(transaction);
+  try {
+    const transaction = await Transaction.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+    res.json(transaction);
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.delete('/transactions/:id', verifyToken, async (req, res) => {
-  await Transaction.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  res.json({ message: 'Transaction deleted' });
+  try {
+    await Transaction.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    res.json({ message: 'Transaction deleted' });
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Budget routes
