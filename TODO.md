@@ -4,6 +4,6 @@
 - [x] Create .env file with placeholders for all required environment variables
 - [x] Test the app locally with .env variables
 - [x] Push code to GitHub repository
-- [ ] Create a new web service on Render connected to the GitHub repo
-- [ ] Set environment variables in Render dashboard
-- [ ] Deploy the app on Render
+- [x] Create a new web service on Render connected to the GitHub repo
+- [x] Set environment variables in Render dashboard
+- [x] Deploy the app on Render
