@@ -215,6 +215,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (welcomeElement) {
                         welcomeElement.textContent = `Welcome, ${user.name}!`;
                     }
+                } else if (response.status === 401) {
+                    // Token invalid, redirect to login
+                    localStorage.removeItem('token');
+                    window.location.href = "login.html";
                 }
             } catch (error) {
                 console.error('Error fetching user data:', error);

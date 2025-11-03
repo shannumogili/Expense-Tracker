@@ -258,7 +258,7 @@
                 const password = document.getElementById("password").value;
 
                 try {
-                    const response = await fetch('http://localhost:5000/login', {
+                    const response = await fetch('/login', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -268,13 +268,13 @@
 
                     const data = await response.json();
 
-                    if (data.success) {
+                    if (response.ok && data.token) {
                         // Store JWT token
                         localStorage.setItem('token', data.token);
                         alert("✅ Login successful!");
                         window.location.href = "index.html";
                     } else {
-                        alert("❌ " + data.message);
+                        alert("❌ " + (data.message || "Login failed"));
                     }
                 } catch (error) {
                     alert("❌ Error: " + error.message);

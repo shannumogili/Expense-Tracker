@@ -1,3 +1,4 @@
+require('dotenv').config();
 console.log("Starting server");
 const express = require('express');
 const mongoose = require('mongoose');
@@ -16,7 +17,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('.'));
 app.use(session({
-  secret: 'your-session-secret',
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: true
 }));
@@ -45,9 +46,11 @@ const transactionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   type: { type: String, enum: ['income', 'expense'], required: true },
   category: { type: String, required: true },
+  categoryId: Number,
   amount: { type: Number, required: true },
   description: String,
-  date: { type: Date, default: Date.now }
+  date: { type: Date, default: Date.now },
+  icon: String
 });
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
@@ -86,13 +89,24 @@ const loanSchema = new mongoose.Schema({
 });
 const Loan = mongoose.model('Loan', loanSchema);
 
+// Category schema
+const categorySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  id: Number,
+  name: String,
+  budget: Number,
+  icon: String,
+  color: String
+});
+const Category = mongoose.model('Category', categorySchema);
+
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Access denied' });
 
   try {
-    const verified = jwt.verify(token, "secretKey");
+    const verified = jwt.verify(token, process.env.JWT_SECRET || "secretKey");
     req.userId = verified.id;
     next();
   } catch (err) {
@@ -113,7 +127,7 @@ const transporter = nodemailer.createTransport({
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'your-google-client-id',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your-google-client-secret',
-    callbackURL: 'http://localhost:5000/auth/google/callback'
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/auth/google/callback'
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -171,8 +185,15 @@ app.post('/login', async (req, res) => {
   if (!isValidPassword) {
     return res.status(400).json({ message: 'Invalid credentials' });
   }
-  const token = jwt.sign({ id: user._id }, "secretKey");
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "secretKey");
   res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+});
+
+// User route
+app.get('/user', verifyToken, async (req, res) => {
+  const user = await User.findById(req.userId).select('-password');
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  res.json({ id: user._id, name: user.name, email: user.email });
 });
 
 // Transaction routes
@@ -184,6 +205,15 @@ app.get('/transactions', verifyToken, async (req, res) => {
 app.post('/transactions', verifyToken, async (req, res) => {
   const transaction = new Transaction({ ...req.body, userId: req.userId });
   await transaction.save();
+  res.json(transaction);
+});
+
+app.put('/transactions/:id', verifyToken, async (req, res) => {
+  const transaction = await Transaction.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    req.body,
+    { new: true }
+  );
   res.json(transaction);
 });
 
@@ -290,13 +320,56 @@ app.delete('/loans/:id', verifyToken, async (req, res) => {
   res.json({ message: 'Loan deleted' });
 });
 
+// Category routes
+app.get('/categories', verifyToken, async (req, res) => {
+  let categories = await Category.find({ userId: req.userId });
+  if (categories.length === 0) {
+    // Add default categories
+    const defaults = [
+      { id: 1, name: 'Food', budget: 0, icon: 'fa-utensils', color: '#FF6384' },
+      { id: 2, name: 'Transportation', budget: 0, icon: 'fa-car', color: '#36A2EB' },
+      { id: 3, name: 'Housing', budget: 0, icon: 'fa-home', color: '#FFCE56' },
+      { id: 4, name: 'Entertainment', budget: 0, icon: 'fa-film', color: '#4BC0C0' },
+      { id: 5, name: 'Shopping', budget: 0, icon: 'fa-shopping-cart', color: '#9966FF' },
+      { id: 6, name: 'Income', budget: 0, icon: 'fa-money-bill-wave', color: '#00CC99' }
+    ];
+    for (const cat of defaults) {
+      const category = new Category({ ...cat, userId: req.userId });
+      await category.save();
+      categories.push(category);
+    }
+  }
+  res.json(categories);
+});
+
+app.post('/categories', verifyToken, async (req, res) => {
+  const category = new Category({ ...req.body, userId: req.userId });
+  await category.save();
+  res.json(category);
+});
+
+app.put('/categories/:id', verifyToken, async (req, res) => {
+  const category = await Category.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    req.body,
+    { new: true }
+  );
+  res.json(category);
+});
+
+app.delete('/categories/:id', verifyToken, async (req, res) => {
+  await Category.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+  res.json({ message: 'Category deleted' });
+});
+
 // Google Auth
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login.html' }),
   (req, res) => {
-    const token = jwt.sign({ id: req.user._id }, "secretKey");
-    res.redirect(`http://localhost:5000/index.html?token=${token}`);
+    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET || "secretKey");
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+    res.redirect(`${frontendUrl}/index.html?token=${token}`);
   }
 );
 
